@@ -1,0 +1,23 @@
+services:
+  finance-service:
+    build: .
+    container_name: finance-service
+    ports:
+      - "8087:8087"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://finance-db:5432/nexus_finance
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_RABBITMQ_HOST=rabbitmq
+    depends_on:
+      - finance-db
+
+  finance-db:
+    image: postgres:16
+    container_name: finance-db
+    environment:
+      - POSTGRES_DB=nexus_finance
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5440:5432"
