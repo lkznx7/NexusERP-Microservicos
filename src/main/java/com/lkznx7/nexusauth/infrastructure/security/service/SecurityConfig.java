@@ -1,4 +1,4 @@
-package com.lkznx7.nexusauth.infrastructure.security;
+package com.lkznx7.nexusauth.infrastructure.security.service;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
