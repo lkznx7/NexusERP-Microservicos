@@ -1,0 +1,23 @@
+services:
+  reports-service:
+    build: .
+    container_name: reports-service
+    ports:
+      - "8091:8091"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://reports-db:5432/nexus_reports
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_RABBITMQ_HOST=rabbitmq
+    depends_on:
+      - reports-db
+
+  reports-db:
+    image: postgres:16
+    container_name: reports-db
+    environment:
+      - POSTGRES_DB=nexus_reports
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5440:5432"
