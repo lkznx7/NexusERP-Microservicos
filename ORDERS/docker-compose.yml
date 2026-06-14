@@ -1,0 +1,22 @@
+services:
+  nexus-orders-db:
+    image: postgres:15
+    container_name: nexus-orders-db
+    environment:
+      POSTGRES_DB: nexus_orders
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5436:5432"
+
+  nexus-orders-service:
+    build: .
+    container_name: nexus-orders-service
+    ports:
+      - "8089:8089"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://nexus-orders-db:5432/nexus_orders
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+    depends_on:
+      - nexus-orders-db
