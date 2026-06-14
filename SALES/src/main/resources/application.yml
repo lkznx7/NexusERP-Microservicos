@@ -5,17 +5,27 @@ spring:
   application:
     name: nexus-sales
   datasource:
-    url: jdbc:postgresql://localhost:5434/nexus_sales
-    username: user
-    password: password
+    url: jdbc:postgresql://localhost:5432/nexus_sales
+    username: postgres
+    password: postgres
     driver-class-name: org.postgresql.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-  flyway:
-    enabled: true
-    baseline-on-migrate: true
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+  endpoint:
+    health:
+      show-details: always
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html

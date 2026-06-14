@@ -8,7 +8,7 @@
         <version>3.3.0</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>com.lkznx7.nexuserp</groupId>
+    <groupId>com.lkznx7</groupId>
     <artifactId>nexus-inventory</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>nexus-inventory</name>
