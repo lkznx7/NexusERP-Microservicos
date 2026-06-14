@@ -1,0 +1,31 @@
+services:
+  notifications-service:
+    build: .
+    container_name: notifications-service
+    ports:
+      - "8088:8088"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://notifications-db:5432/nexus_notifications
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_RABBITMQ_HOST=rabbitmq
+    depends_on:
+      - notifications-db
+      - rabbitmq
+
+  notifications-db:
+    image: postgres:16
+    container_name: notifications-db
+    environment:
+      - POSTGRES_DB=nexus_notifications
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5438:5432"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: notifications-rabbitmq
+    ports:
+      - "5675:5672"
+      - "15675:15672"
