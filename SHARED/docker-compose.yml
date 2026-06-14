@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  shared-db:
+    image: postgres:16-alpine
+    container_name: shared-db
+    environment:
+      POSTGRES_DB: nexus_shared
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5440:5432"
+    volumes:
+      - shared_db_data:/var/lib/postgresql/data
+
+  shared-rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: shared-rabbitmq
+    ports:
+      - "5680:5672"
+      - "15680:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+  shared-service:
+    build: .
+    container_name: shared-service
+    ports:
+      - "8092:8092"
+    depends_on:
+      - shared-db
+      - shared-rabbitmq
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://shared-db:5432/nexus_shared
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_RABBITMQ_HOST: shared-rabbitmq
+
+volumes:
+  shared_db_data:
