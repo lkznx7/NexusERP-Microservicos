@@ -1,8 +1,8 @@
 package com.lkznx7.nexusauth.infrastructure.security.jwt;
 
+import com.lkznx7.nexusauth.application.port.CacheService;
 import com.lkznx7.nexusauth.application.port.TokenService;
-import com.lkznx7.nexusauth.infrastructure.persistence.entity.User;
-import com.lkznx7.nexusauth.infrastructure.persistence.repository.JpaUserRepository;
+import com.lkznx7.nexusauth.domain.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -19,14 +19,14 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-public class JwtTokenService {
+public class JwtTokenService implements TokenService {
 
     private final JwtProperties jwtProperties;
-    private final JpaUserRepository jpaUserRepository;
+    private final CacheService cacheService;
 
-    public JwtTokenService(JwtProperties jwtProperties, JpaUserRepository jpaUserRepository) {
+    public JwtTokenService(JwtProperties jwtProperties, CacheService cacheService) {
         this.jwtProperties = jwtProperties;
-        this.jpaUserRepository = jpaUserRepository;
+        this.cacheService = cacheService;
     }
 
     private SecretKey getSigningKey() {
@@ -34,12 +34,13 @@ public class JwtTokenService {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
+    @Override
     public String generateAccessToken(User user) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtProperties.getExpiration());
 
-        List<String> roles = user.getAuthorities().stream()
-                .map(grantedAuthority -> grantedAuthority.getAuthority())
+        List<String> roles = user.getRoles().stream()
+                .map(role -> "ROLE_" + role.getName())
                 .collect(Collectors.toList());
 
         return Jwts.builder()
@@ -52,16 +53,26 @@ public class JwtTokenService {
                 .compact();
     }
 
+    @Override
     public String generateRefreshToken(User user) {
-        Date expirationRefreshToken = new Date(System.currentTimeMillis() + jwtProperties.getExpiration());
-        return Jwts.builder().subject(user.getUsername())
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + 604800000); // 7 days default if not in properties
+
+        return Jwts.builder()
+                .subject(user.getEmail().value())
                 .id(UUID.randomUUID().toString())
-                .expiration(expirationRefreshToken)
-                .issuedAt(new Date())
-                .signWith(getSigningKey()).compact();
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(getSigningKey())
+                .compact();
     }
+
+    @Override
     public boolean validateToken(String token) {
         try {
+            if (cacheService.get("blacklist:" + token) != null) {
+                return false;
+            }
             Jwts.parser()
                     .verifyWith(getSigningKey())
                     .build()
@@ -72,20 +83,24 @@ public class JwtTokenService {
         }
     }
 
+    @Override
     public String getSubject(String token) {
         return extractAllClaims(token).getSubject();
     }
 
+    @Override
     @SuppressWarnings("unchecked")
     public List<String> getAuthorities(String token) {
         Claims claims = extractAllClaims(token);
         return (List<String>) claims.get("roles");
     }
 
+    @Override
     public Map<String, Object> getClaims(String token) {
         return extractAllClaims(token);
     }
 
+    @Override
     public LocalDateTime getExpiration(String token) {
         Date expirationDate = extractAllClaims(token).getExpiration();
         return expirationDate.toInstant()
@@ -93,11 +108,12 @@ public class JwtTokenService {
                 .toLocalDateTime();
     }
 
+    @Override
     public void revokeToken(String token) {
-        var user = jpaUserRepository.findByUsername(token);
-        Claims claims = extractAllClaims(token);
-        // token expirado,dois token mesmo usuario,login em ip diferente e aparelho, mudar a senha , user.status=locked, token reutilizado
-
+        long expirationTimeInSeconds = getExpiration(token).atZone(ZoneId.systemDefault()).toEpochSecond() - LocalDateTime.now().atZone(ZoneId.systemDefault()).toEpochSecond();
+        if (expirationTimeInSeconds > 0) {
+            cacheService.put("blacklist:" + token, "revoked", expirationTimeInSeconds);
+        }
     }
 
     private Claims extractAllClaims(String token) {
@@ -107,5 +123,4 @@ public class JwtTokenService {
                 .parseSignedClaims(token)
                 .getPayload();
     }
-
 }
